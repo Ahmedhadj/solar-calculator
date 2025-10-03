@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الحاسبة الشمسية الاحترافية | PVsyst v8 Pro</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
+    <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary: #0066cc;
+            --primary-dark: #004499;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --bg: #f8f9fa;
+            --surface: #ffffff;
+            --text: #212529;
+            --text-secondary: #6c757d;
+            --border: #dee2e6;
+            --shadow: rgba(0,0,0,0.08);
+            --shadow-lg: rgba(0,0,0,0.15);
+        }
+        body.dark-mode {
+            --primary: #4a9eff;
+            --primary-dark: #357abd;
+            --success: #40c463;
+            --bg: #0d1117;
+            --surface: #161b22;
+            --text: #c9d1d9;
+            --text-secondary: #8b949e;
+            --border: #30363d;
+            --shadow: rgba(0,0,0,0.3);
+            --shadow-lg: rgba(0,0,0,0.5);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+        #map {
+            flex: 1;
+            height: 100%;
+            position: relative;
+        }
+        .sidebar {
+            width: 480px;
+            background: var(--surface);
+            box-shadow: -2px 0 20px var(--shadow-lg);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 2px 10px var(--shadow);
+        }
+        .sidebar-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .sidebar-header .subtitle {
+            opacity: 0.9;
+            font-size: 0.85rem;
+        }
+        .sidebar-content {
+            padding: 20px;
+            flex: 1;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: all 0.2s;
+        }
+        .card:hover {
+            box-shadow: 0 4px 16px var(--shadow-lg);
+        }
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--primary);
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+        }
+        .btn-secondary {
+            background: var(--text-secondary);
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: var(--text);
+        }
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        .btn-block {
+            width: 100%;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin: 16px 0;
+        }
+        .tool-buttons {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            display: flex;
+            gap: 8px;
+        }
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: all 0.2s;
+        }
+        .tool-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px var(--shadow-lg);
+        }
+        .map-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 16px;
+        }
+        .tab {
+            padding: 10px 16px;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            font-weight: 500;
+            transition: all 0.2s;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+        }
+        .tab:hover {
+            background: var(--bg);
+        }
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .metric-card {
+            background: var(--bg);
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+        .metric-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .metric-unit {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-right: 4px;
+        }
+        .climate-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .climate-table th,
+        .climate-table td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .climate-table th {
+            background: var(--bg);
+            font-weight: 600;
+        }
+        .climate-table input {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--surface);
+            color: var(--text);
+            text-align: center;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        .loading-content {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 8px 32px var(--shadow-lg);
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .alert {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px var(--shadow-lg);
+            z-index: 10001;
+            animation: slideDown 0.3s;
+            min-width: 300px;
+            text-align: center;
+        }
+        @keyframes slideDown {
+            from { transform: translate(-50%, -100%); }
+            to { transform: translate(-50%, 0); }
+        }
+        .alert-success {
+            background: var(--success);
+            color: white;
+        }
+        .alert-error {
+            background: var(--danger);
+            color: white;
+        }
+        .alert-info {
+            background: var(--primary);
+            color: white;
+        }
+        .progress-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            transition: width 0.3s;
+        }
+        @media (max-width: 1024px) {
+            .app-container {
+                flex-direction: column;
+            }
+            #map {
+                height: 40vh;
+            }
+            .sidebar {
+                width: 100%;
+                height: 60vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-buttons">
+        <button class="tool-btn" id="langToggle" title="تبديل اللغة">
+            <i class="fas fa-language"></i>
+        </button>
+        <button class="tool-btn" id="darkModeToggle" title="الوضع الليلي">
+            <i class="fas fa-moon"></i>
+        </button>
+        <button class="tool-btn" id="downloadPdfBtn" title="تنزيل PDF">
+            <i class="fas fa-file-pdf"></i>
+        </button>
+        <button class="tool-btn" id="printBtn" title="طباعة">
+            <i class="fas fa-print"></i>
+        </button>
+    </div>
+    <div class="app-container">
+        <div id="map"></div>
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-solar-panel"></i> الحاسبة الشمسية الاحترافية</h1>
+                <div class="subtitle">محاكاة PVsyst v8 Pro - دقة عالية</div>
+            </div>
+            <div class="sidebar-content">
+                <!-- الموقع -->
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>الموقع الجغرافي</span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">خط العرض (°)</label>
+                            <input type="number" class="form-control" id="latitude" value="24.7136" step="0.0001" min="-90" max="90">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">خط الطول (°)</label>
+                            <input type="number" class="form-control" id="longitude" value="46.6753" step="0.0001" min="-180" max="180">
+                        </div>
+                    </div>
+                    <button class="btn btn-success btn-block" id="fetchPVGISBtn">
+                        <i class="fas fa-cloud-download-alt"></i>
+                        جلب بيانات PVGIS
+                    </button>
+                </div>
+                <!-- البيانات المناخية -->
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-cloud-sun"></i>
+                        <span>البيانات المناخية</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">مصدر البيانات</label>
+                        <select class="form-control" id="climateDataSource">
+                            <option value="pvgis">PVGIS (بيانات ساتلية حقيقية)</option>
+                            <option value="manual">إدخال يدوي</option>
+                        </select>
+                    </div>
+                    <div id="manualClimateInputs" style="display:none;">
+                        <button class="btn btn-secondary btn-block" id="pasteClimateBtn" style="margin-bottom:12px">
+                            <i class="fas fa-clipboard"></i>
+                            لصق من Excel
+                        </button>
+                        <div style="overflow-x:auto;">
+                            <table class="climate-table" id="climateTable">
+                                <thead>
+                                    <tr>
+                                        <th>الشهر</th>
+                                        <th>الحرارة (°C)</th>
+                                        <th>الإشعاع (kWh/m²/day)</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- إعدادات النظام -->
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-cogs"></i>
+                        <span>إعدادات النظام الشمسي</span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">القدرة الكلية (kWp)</label>
+                            <input type="number" class="form-control" id="pvPower" value="5" step="0.1" min="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">نوع التركيب</label>
+                            <select class="form-control" id="systemType">
+                                <option value="fixed_optimal">ثابت (ميل أمثل)</option>
+                                <option value="tracking_1axis">متتبع أحادي المحور</option>
+                                <option value="tracking_2axis">متتبع ثنائي المحور</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">كفاءة الإنفرتر (%)</label>
+                            <input type="number" class="form-control" id="inverterEff" value="97" step="0.1" min="90" max="99">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">عامل DC/AC</label>
+                            <input type="number" class="form-control" id="dcAcRatio" value="1.2" step="0.1" min="1" max="2">
+                        </div>
+                    </div>
+                </div>
+                <!-- مواصفات اللوح -->
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-th-large"></i>
+                        <span>مواصفات الألواح (STC)</span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">القدرة الاسمية (W)</label>
+                            <input type="number" class="form-control" id="pNom" value="450" min="100">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">معامل الحرارة γ (%/°C)</label>
+                            <input type="number" class="form-control" id="muPmp" value="-0.35" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">NOCT (°C)</label>
+                            <input type="number" class="form-control" id="noct" value="45" min="30" max="60">
+                        </div>
+                    </div>
+                </div>
+                <!-- الخسائر المفصلة -->
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-chart-line"></i>
+                        <span>الخسائر المفصلة (PVsyst Model)</span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">التربة Soiling (%)</label>
+                            <input type="number" class="form-control" id="soilingLoss" value="2" min="0" max="20" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">عدم التطابق (%)</label>
+                            <input type="number" class="form-control" id="mismatchLoss" value="0.5" min="0" max="5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">LID (%)</label>
+                            <input type="number" class="form-control" id="lidLoss" value="1.5" min="0" max="5" step="0.1">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">الأسلاك Wiring (%)</label>
+                            <input type="number" class="form-control" id="wiringLoss" value="1" min="0" max="5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">الظلال Shading (%)</label>
+                            <input type="number" class="form-control" id="shadingLoss" value="0" min="0" max="30" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">التدهور السنوي (%)</label>
+                            <input type="number" class="form-control" id="degradation" value="0.5" min="0" max="2" step="0.1">
+                        </div>
+                    </div>
+                </div>
+                <!-- البيانات الاقتصادية -->
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-coins"></i>
+                        <span>البيانات الاقتصادية</span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">سعر الكهرباء ($/kWh)</label>
+                            <input type="number" class="form-control" id="electricityPrice" value="0.10" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">تكلفة التركيب ($/kWp)</label>
+                            <input type="number" class="form-control" id="installationCost" value="1200" step="50" min="0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">تكلفة الصيانة السنوية (%)</label>
+                            <input type="number" class="form-control" id="maintenanceCost" value="1" step="0.1" min="0" max="5">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">معدل الخصم (%)</label>
+                            <input type="number" class="form-control" id="discountRate" value="5" step="0.5" min="0" max="20">
+                        </div>
+                    </div>
+                </div>
+                <!-- أزرار الإجراءات -->
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="calculateBtn" style="flex:2">
+                        <i class="fas fa-calculator"></i>
+                        حساب
+                    </button>
+                    <button class="btn btn-secondary" id="resetBtn" style="flex:1">
+                        <i class="fas fa-redo"></i>
+                        إعادة تعيين
+                    </button>
+                </div>
+                <!-- النتائج -->
+                <div id="results" style="display:none;">
+                    <div class="card">
+                        <div class="tabs" id="resultTabs"></div>
+                        <div id="summaryTab" class="tab-content">
+                            <div class="metric-grid" id="summaryMetrics"></div>
+                        </div>
+                        <div id="monthlyTab" class="tab-content">
+                            <canvas id="monthlyChart" style="max-height:300px;"></canvas>
+                        </div>
+                        <div id="economicsTab" class="tab-content">
+                            <div id="economicsContent"></div>
+                        </div>
+                        <div id="environmentTab" class="tab-content">
+                            <div id="environmentContent"></div>
+                        </div>
+                        <div id="detailedTab" class="tab-content">
+                            <div id="detailedContent"></div>
+                        </div>
+                        <div id="recommendationsTab" class="tab-content">
+                            <div id="recommendationsContent" style="padding:16px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="map-controls">
+        <button class="tool-btn" id="zoomInBtn" title="تكبير">
+            <i class="fas fa-plus"></i>
+        </button>
+        <button class="tool-btn" id="zoomOutBtn" title="تصغير">
+            <i class="fas fa-minus"></i>
+        </button>
+        <button class="tool-btn" id="centerMapBtn" title="توسيط">
+            <i class="fas fa-crosshairs"></i>
+        </button>
+    </div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p style="font-weight:600;">جاري المعالجة...</p>
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px;" id="loadingText">يرجى الانتظار</p>
+        </div>
+    </div>
+    <script>
+    // ==================== Constants & State ====================
+    const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    const DAYS_IN_MONTH = [31,28,31,30,31,30,31,31,30,31,30,31];
+    const CO2_FACTOR = 0.45; // kg CO2/kWh
+    const ALBEDO = 0.2; // معامل الانعكاس الأرضي
+    let state = {
+        map: null,
+        marker: null,
+        chart: null,
+        pvgisData: null,
+        isEnglish: false,
+        isDark: false
+    };
+
+    // ==================== التحليل الذكي والتوصيات ====================
+    function analyzeClimateAndResults(climateData, results, inputs) {
+        const issues = [];
+        const { annual, performanceRatio, annualDC } = results;
+        const { pvPower, systemType, muPmp, soilingLoss, shadingLoss } = inputs;
+
+        // --- تحليل البيانات المناخية ---
+        const avgRad = climateData.reduce((sum, m) => sum + m.rad, 0) / 12;
+        const maxTemp = Math.max(...climateData.map(m => m.temp));
+        const minRad = Math.min(...climateData.map(m => m.rad));
+
+        if (avgRad < 4.0) {
+            issues.push({ type: 'climate', severity: 'warning', key: 'low_radiation' });
+        }
+        if (minRad < 2.5) {
+            issues.push({ type: 'climate', severity: 'warning', key: 'very_low_radiation_winter' });
+        }
+        if (maxTemp > 40) {
+            issues.push({ type: 'climate', severity: 'warning', key: 'high_temperature' });
+        }
+
+        // --- تحليل النتائج ---
+        const pr = performanceRatio * 100;
+        const totalLossPercent = ((annualDC - annual) / annualDC) * 100;
+
+        if (pr < 75) {
+            issues.push({ type: 'performance', severity: 'error', key: 'low_pr' });
+        } else if (pr < 80) {
+            issues.push({ type: 'performance', severity: 'warning', key: 'moderate_pr' });
+        }
+
+        if (totalLossPercent > 25) {
+            issues.push({ type: 'losses', severity: 'error', key: 'high_losses' });
+        }
+
+        if (soilingLoss > 5) {
+            issues.push({ type: 'losses', severity: 'warning', key: 'high_soiling' });
+        }
+
+        if (shadingLoss > 5) {
+            issues.push({ type: 'losses', severity: 'warning', key: 'high_shading' });
+        }
+
+        if (systemType === 'fixed_optimal' && pr > 82) {
+            issues.push({ type: 'opportunity', severity: 'info', key: 'good_fixed_performance' });
+        }
+
+        if (systemType === 'fixed_optimal' && avgRad > 5.5) {
+            issues.push({ type: 'opportunity', severity: 'info', key: 'consider_tracking' });
+        }
+
+        return issues;
+    }
+
+    function generateRecommendations(issues, isEnglish = false) {
+        const recs = [];
+
+        const messages = {
+            low_radiation: isEnglish
+                ? "Average solar radiation is low (<4 kWh/m²/day). Consider system oversizing or hybrid solutions."
+                : "متوسط الإشعاع الشمسي منخفض (<4 كيلوواط ساعة/م²/يوم). يُوصى بزيادة حجم النظام أو النظر في حلول هجينة.",
+            very_low_radiation_winter: isEnglish
+                ? "Winter radiation is very low (<2.5 kWh/m²/day). Battery storage may not be cost-effective in winter months."
+                : "الإشعاع الشتوي منخفض جدًا (<2.5 كيلوواط ساعة/م²/يوم). قد لا تكون البطاريات فعّالة اقتصاديًا في الشتاء.",
+            high_temperature: isEnglish
+                ? "High ambient temperatures (>40°C) reduce panel efficiency. Ensure good airflow behind panels."
+                : "درجات الحرارة المرتفعة (>40°م) تقلل كفاءة الألواح. تأكد من وجود تهوية جيدة خلف الألواح.",
+            low_pr: isEnglish
+                ? "Performance Ratio is critically low (<75%). Check for shading, soiling, or inverter issues."
+                : "معامل الأداء منخفض جدًا (<75%). تحقق من الظلال، التربة، أو مشاكل الإنفرتر.",
+            moderate_pr: isEnglish
+                ? "Performance Ratio is acceptable but improvable (75–80%). Consider cleaning panels or reducing wiring losses."
+                : "معامل الأداء مقبول لكنه قابل للتحسين (75–80%). فكّر في تنظيف الألواح أو تقليل خسائر الأسلاك.",
+            high_losses: isEnglish
+                ? "Total system losses exceed 25%. Review all loss factors and system design."
+                : "إجمالي خسائر النظام تتجاوز 25%. راجع جميع عوامل الخسارة وتصميم النظام.",
+            high_soiling: isEnglish
+                ? "Soiling losses are high (>5%). Implement a regular cleaning schedule."
+                : "خسائر التربة مرتفعة (>5%). طبّق جدول تنظيف دوري.",
+            high_shading: isEnglish
+                ? "Shading losses are significant (>5%). Re-evaluate panel placement or use optimizers."
+                : "خسائر الظلال كبيرة (>5%). أعد تقييم موقع الألواح أو استخدم مُحسّنات (optimizers).",
+            good_fixed_performance: isEnglish
+                ? "Excellent performance for a fixed-tilt system! Well-designed."
+                : "أداء ممتاز لنظام ثابت! تصميم جيد.",
+            consider_tracking: isEnglish
+                ? "High solar resource detected. Consider single-axis tracking for +15–25% yield gain."
+                : "موارد شمسية عالية. فكّر في استخدام متتبع أحادي المحور لزيادة الإنتاج بنسبة 15–25%."
+        };
+
+        issues.forEach(issue => {
+            if (messages[issue.key]) {
+                recs.push({
+                    severity: issue.severity,
+                    text: messages[issue.key]
+                });
+            }
+        });
+
+        return recs;
+    }
+
+    function displayRecommendations(recommendations) {
+        const container = document.getElementById('recommendationsContent');
+        if (!container) return;
+
+        if (recommendations.length === 0) {
+            container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-secondary);">
+                <i class="fas fa-check-circle" style="font-size:2rem;color:var(--success);"></i>
+                <p style="margin-top:10px;">${state.isEnglish ? 'No issues detected. System is well-optimized!' : 'لا توجد مشكلات. النظام مُحسَّن جيدًا!'}</p>
+            </div>`;
+            return;
+        }
+
+        const html = recommendations.map(rec => {
+            let icon = 'info-circle';
+            let color = 'var(--text-secondary)';
+            if (rec.severity === 'warning') {
+                icon = 'exclamation-triangle';
+                color = 'var(--warning)';
+            } else if (rec.severity === 'error') {
+                icon = 'times-circle';
+                color = 'var(--danger)';
+            }
+            return `
+                <div style="padding:12px;margin-bottom:12px;background:var(--bg);border-radius:8px;border-right:4px solid ${color};">
+                    <i class="fas fa-${icon}" style="color:${color};margin-left:8px;"></i>
+                    ${rec.text}
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = html;
+    }
+
+    // ==================== Advanced Solar Calculations ====================
+    // نموذج IAM متقدم (Incidence Angle Modifier)
+    function calculateIAM(theta) {
+        if (theta >= 90) return 0;
+        const thetaRad = theta * Math.PI / 180;
+        const n = 1.526; // Glass refractive index
+        const sinT = Math.sin(thetaRad) / n;
+        if (Math.abs(sinT) > 1) return 0;
+        const cosT = Math.sqrt(1 - sinT * sinT);
+        const cosI = Math.cos(thetaRad);
+        const Rs = Math.pow((cosI - n * cosT) / (cosI + n * cosT), 2);
+        const Rp = Math.pow((n * cosI - cosT) / (n * cosI + cosT), 2);
+        const R = 0.5 * (Rs + Rp);
+        return 1 - R;
+    }
+    // نموذج حراري متقدم للخلايا
+    function calculateCellTemperature(gPOA, tAmb, windSpeed, noct) {
+        // PVsyst enhanced thermal model
+        const deltaT = (noct - 20) / 800 * gPOA;
+        const windFactor = Math.max(0.5, 1 - 0.04 * (windSpeed - 1));
+        return tAmb + deltaT * windFactor;
+    }
+    // حساب زاوية الإشعاع الشمسي
+    function calculateSolarAngles(lat, doy) {
+        const latRad = lat * Math.PI / 180;
+        const declination = 23.45 * Math.sin(2 * Math.PI * (284 + doy) / 365) * Math.PI / 180;
+        const hourAngles = [];
+        for (let h = 0; h < 24; h++) {
+            const hourAngle = (h - 12) * 15 * Math.PI / 180;
+            const sinAlt = Math.sin(latRad) * Math.sin(declination) + 
+                          Math.cos(latRad) * Math.cos(declination) * Math.cos(hourAngle);
+            const altitude = Math.asin(Math.max(-1, Math.min(1, sinAlt)));
+            hourAngles.push(altitude * 180 / Math.PI);
+        }
+        return hourAngles;
+    }
+    // نموذج الإشعاع الشمسي المتقدم
+    function calculatePOA(ghi, lat, doy, tilt, azimuth) {
+        const angles = calculateSolarAngles(lat, doy);
+        const tiltRad = tilt * Math.PI / 180;
+        const azimuthRad = azimuth * Math.PI / 180;
+        let poaSum = 0;
+        let count = 0;
+        angles.forEach((alt, h) => {
+            if (alt > 0) {
+                const altRad = alt * Math.PI / 180;
+                const zenith = Math.PI / 2 - altRad;
+                // Direct component
+                const cosIncidence = Math.cos(zenith) * Math.cos(tiltRad) + 
+                                   Math.sin(zenith) * Math.sin(tiltRad) * Math.cos(azimuthRad);
+                const direct = ghi * 0.7 * Math.max(0, cosIncidence);
+                // Diffuse component (isotropic sky model)
+                const diffuse = ghi * 0.3 * (1 + Math.cos(tiltRad)) / 2;
+                // Ground reflected
+                const reflected = ghi * ALBEDO * (1 - Math.cos(tiltRad)) / 2;
+                poaSum += direct + diffuse + reflected;
+                count++;
+            }
+        });
+        return count > 0 ? poaSum / count : 0;
+    }
+    // ==================== PVGIS Data Fetching ====================
+    async function fetchPVGISData(lat, lng) {
+        showLoading(true, 'جاري الاتصال بـ PVGIS...');
+        try {
+            // استخدام API المبسط من PVGIS
+            const url = `https://re.jrc.ec.europa.eu/api/v5_2/MRcalc?lat=${lat}&lon=${lng}&startyear=2005&endyear=2020&outputformat=json`;
+            showLoading(true, 'جاري تحميل البيانات...');
+            const response = await fetch(url, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            if (!response.ok) {
+                throw new Error('فشل الاتصال بـ PVGIS. جرب الإدخال اليدوي.');
+            }
+            const data = await response.json();
+            if (!data.outputs || !data.outputs.monthly) {
+                throw new Error('بيانات غير كاملة من PVGIS');
+            }
+            showLoading(true, 'جاري معالجة البيانات...');
+            // معالجة البيانات الشهرية
+            const monthlyData = data.outputs.monthly;
+            state.pvgisData = monthlyData.map(m => ({
+                temp: m.T2m || 20,
+                rad: m['H(i_opt)'] ? (m['H(i_opt)'] / 1000) : 5, // تحويل من Wh/m² إلى kWh/m²
+                wind: 1.5 // قيمة افتراضية للرياح
+            }));
+            fillClimateTable();
+            showAlert('تم جلب بيانات PVGIS بنجاح!', 'success');
+        } catch (e) {
+            console.error('PVGIS Error:', e);
+            // في حالة الفشل، استخدم بيانات تقديرية بناءً على الموقع
+            showAlert('تعذر الاتصال بـ PVGIS. استخدام بيانات تقديرية بناءً على الموقع...', 'error');
+            // حساب بيانات تقريبية بناءً على خط العرض
+            state.pvgisData = estimateClimateData(lat);
+            fillClimateTable();
+            showAlert('تم استخدام بيانات تقديرية. للدقة الأعلى، أدخل البيانات يدوياً.', 'info');
+        } finally {
+            showLoading(false);
+        }
+    }
+    // حساب بيانات مناخية تقريبية بناءً على خط العرض
+    function estimateClimateData(lat) {
+        const absLat = Math.abs(lat);
+        // متوسط درجات الحرارة حسب المنطقة
+        let baseTemp = 25;
+        if (absLat < 15) baseTemp = 28; // استوائي
+        else if (absLat < 30) baseTemp = 25; // شبه استوائي
+        else if (absLat < 45) baseTemp = 20; // معتدل
+        else baseTemp = 15; // بارد
+        // متوسط الإشعاع حسب المنطقة
+        let baseRad = 5.5;
+        if (absLat < 15) baseRad = 5.8;
+        else if (absLat < 30) baseRad = 6.2;
+        else if (absLat < 45) baseRad = 4.5;
+        else baseRad = 3.5;
+        // توزيع موسمي
+        const seasonal = [];
+        for (let i = 0; i < 12; i++) {
+            const monthAngle = (i - 6) * Math.PI / 6;
+            const latSign = lat >= 0 ? 1 : -1; // نصف الكرة
+            // تغير درجة الحرارة الموسمي
+            const tempVariation = 10 * Math.cos(monthAngle * latSign);
+            const temp = baseTemp + tempVariation;
+            // تغير الإشعاع الموسمي
+            const radVariation = 1.5 * Math.cos(monthAngle * latSign);
+            const rad = Math.max(2, baseRad + radVariation);
+            seasonal.push({
+                temp: parseFloat(temp.toFixed(1)),
+                rad: parseFloat(rad.toFixed(2)),
+                wind: 1.5
+            });
+        }
+        return seasonal;
+    }
+    // ==================== Main Calculation ====================
+    async function calculate() {
+        try {
+            showLoading(true, 'جاري الحساب...');
+            // Get inputs
+            const lat = getNumericInput('latitude');
+            const pvPower = getNumericInput('pvPower');
+            const systemType = document.getElementById('systemType').value;
+            const inverterEff = getNumericInput('inverterEff') / 100;
+            const dcAcRatio = getNumericInput('dcAcRatio');
+            const tempCoeff = getNumericInput('muPmp', true) / 100;
+            const noct = getNumericInput('noct');
+            // Losses
+            const losses = {
+                soiling: getNumericInput('soilingLoss') / 100,
+                mismatch: getNumericInput('mismatchLoss') / 100,
+                lid: getNumericInput('lidLoss') / 100,
+                wiring: getNumericInput('wiringLoss') / 100,
+                shading: getNumericInput('shadingLoss') / 100,
+                degradation: getNumericInput('degradation') / 100
+            };
+            // Climate data
+            let climateData;
+            if (document.getElementById('climateDataSource').value === 'pvgis') {
+                if (!state.pvgisData) {
+                    await fetchPVGISData(lat, document.getElementById('longitude').value);
+                    if (!state.pvgisData) throw new Error('فشل جلب بيانات المناخ');
+                }
+                climateData = state.pvgisData;
+            } else {
+                climateData = getManualClimateData();
+            }
+            // Calculate monthly production
+            const monthlyData = [];
+            let totalLosses = 0;
+            for (let month = 0; month < 12; month++) {
+                const ghi = climateData[month].rad;
+                const tAmb = climateData[month].temp;
+                const wind = climateData[month].wind || 1.5;
+                // Calculate optimal tilt for this month
+                const tilt = Math.abs(lat) + (month < 6 ? 15 : -15);
+                const daysInMonth = DAYS_IN_MONTH[month];
+                const doy = DAYS_IN_MONTH.slice(0, month).reduce((a, b) => a + b, 0) + 15;
+                // POA irradiance
+                const poa = calculatePOA(ghi * 1000, lat, doy, tilt, 0);
+                // Cell temperature
+                const tCell = calculateCellTemperature(poa, tAmb, wind, noct);
+                // Temperature loss
+                const tempLoss = 1 + tempCoeff * (tCell - 25);
+                // IAM loss
+                const avgIncidence = systemType === 'tracking_2axis' ? 0 : 
+                                   systemType === 'tracking_1axis' ? 20 : 30;
+                const iamFactor = calculateIAM(avgIncidence);
+                // System factor
+                let systemFactor = 1;
+                if (systemType === 'tracking_1axis') systemFactor = 1.25;
+                if (systemType === 'tracking_2axis') systemFactor = 1.35;
+                // Total loss factor
+                const totalLossFactor = (1 - losses.soiling) * 
+                                       (1 - losses.mismatch) * 
+                                       (1 - losses.lid) * 
+                                       (1 - losses.wiring) * 
+                                       (1 - losses.shading);
+                // Monthly energy
+                const dcEnergy = pvPower * ghi * daysInMonth * tempLoss * 
+                               iamFactor * systemFactor * totalLossFactor;
+                // AC energy (with inverter efficiency and clipping)
+                const inverterCap = pvPower / dcAcRatio;
+                const acEnergy = Math.min(dcEnergy, inverterCap * daysInMonth * 24) * inverterEff;
+                monthlyData.push({
+                    dc: dcEnergy,
+                    ac: acEnergy,
+                    losses: dcEnergy - acEnergy
+                });
+                totalLosses += (dcEnergy - acEnergy);
+            }
+            const annualAC = monthlyData.reduce((sum, m) => sum + m.ac, 0);
+            const annualDC = monthlyData.reduce((sum, m) => sum + m.dc, 0);
+            displayResults({
+                annual: annualAC,
+                annualDC: annualDC,
+                monthly: monthlyData,
+                losses: totalLosses,
+                performanceRatio: annualAC / (pvPower * 8760)
+            });
+            showAlert('تم الحساب بنجاح!', 'success');
+        } catch (e) {
+            console.error('Calculation error:', e);
+            showAlert('خطأ: ' + e.message, 'error');
+        } finally {
+            showLoading(false);
+        }
+    }
+    // ==================== Results Display ====================
+    function displayResults(results) {
+        document.getElementById('results').style.display = 'block';
+
+        // جمع المدخلات الحالية لتحليلها
+        const inputs = {
+            pvPower: getNumericInput('pvPower'),
+            systemType: document.getElementById('systemType').value,
+            muPmp: getNumericInput('muPmp', true),
+            soilingLoss: getNumericInput('soilingLoss'),
+            shadingLoss: getNumericInput('shadingLoss')
+        };
+
+        // تحليل البيانات
+        let climateData;
+        if (document.getElementById('climateDataSource').value === 'pvgis') {
+            climateData = state.pvgisData || estimateClimateData(getNumericInput('latitude'));
+        } else {
+            climateData = getManualClimateData();
+        }
+
+        const issues = analyzeClimateAndResults(climateData, results, inputs);
+        const recommendations = generateRecommendations(issues, state.isEnglish);
+        displayRecommendations(recommendations);
+
+        // Summary metrics
+        const metrics = [
+            { label: 'الإنتاج السنوي (AC)', value: Math.round(results.annual), unit: 'kWh' },
+            { label: 'الإنتاج السنوي (DC)', value: Math.round(results.annualDC), unit: 'kWh' },
+            { label: 'معامل الأداء (PR)', value: (results.performanceRatio * 100).toFixed(1), unit: '%' },
+            { label: 'الخسائر السنوية', value: Math.round(results.losses), unit: 'kWh' }
+        ];
+        document.getElementById('summaryMetrics').innerHTML = metrics.map(m => `
+            <div class="metric-card">
+                <div class="metric-label">${m.label}</div>
+                <div class="metric-value">${m.value}<span class="metric-unit">${m.unit}</span></div>
+            </div>
+        `).join('');
+        // Monthly chart
+        createChart(
+            'monthlyChart',
+            MONTHS_AR,
+            [
+                { label: 'AC (kWh)', data: results.monthly.map(m => Math.round(m.ac)), color: '#0066cc' },
+                { label: 'DC (kWh)', data: results.monthly.map(m => Math.round(m.dc)), color: '#28a745' }
+            ]
+        );
+        // Economics
+        displayEconomics(results.annual);
+        // Environment
+        displayEnvironment(results.annual);
+        // Detailed breakdown
+        displayDetailed(results);
+        // Setup tabs
+        setupResultTabs();
+    }
+    function displayEconomics(annualEnergy) {
+        const price = getNumericInput('electricityPrice');
+        const costPerKWp = getNumericInput('installationCost');
+        const maintenancePct = getNumericInput('maintenanceCost') / 100;
+        const discountRate = getNumericInput('discountRate') / 100;
+        const pvPower = getNumericInput('pvPower');
+        const totalCost = pvPower * costPerKWp;
+        const annualSavings = annualEnergy * price;
+        const annualMaintenance = totalCost * maintenancePct;
+        const netAnnualSavings = annualSavings - annualMaintenance;
+        // Simple payback
+        const simplePayback = totalCost / netAnnualSavings;
+        // NPV calculation (25 years)
+        let npv = -totalCost;
+        for (let y = 1; y <= 25; y++) {
+            const degradation = Math.pow(1 - 0.005, y);
+            const yearSavings = netAnnualSavings * degradation;
+            npv += yearSavings / Math.pow(1 + discountRate, y);
+        }
+        // IRR approximation
+        const irr = ((netAnnualSavings * 25) / totalCost - 1) / 25 * 100;
+        document.getElementById('economicsContent').innerHTML = `
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <div class="metric-label">التكلفة الإجمالية</div>
+                    <div class="metric-value">$${totalCost.toLocaleString()}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">التوفير السنوي</div>
+                    <div class="metric-value">$${Math.round(annualSavings).toLocaleString()}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">فترة الاسترداد البسيطة</div>
+                    <div class="metric-value">${simplePayback.toFixed(1)}<span class="metric-unit">سنة</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">صافي القيمة الحالية NPV</div>
+                    <div class="metric-value">$${Math.round(npv).toLocaleString()}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">معدل العائد الداخلي IRR</div>
+                    <div class="metric-value">${irr.toFixed(1)}<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">العائد خلال 25 سنة</div>
+                    <div class="metric-value">$${Math.round(netAnnualSavings * 25 * 0.95).toLocaleString()}</div>
+                </div>
+            </div>
+        `;
+    }
+    function displayEnvironment(annualEnergy) {
+        const co2Annual = (annualEnergy * CO2_FACTOR / 1000).toFixed(2);
+        const co2Lifetime = (co2Annual * 25 * 0.95).toFixed(1);
+        const treesEquivalent = Math.round(co2Lifetime / 0.021);
+        const carsOff = Math.round(co2Lifetime / 4.6);
+        document.getElementById('environmentContent').innerHTML = `
+            <div class="metric-grid">
+                <div class="metric-card" style="border-left-color: var(--success)">
+                    <div class="metric-label">توفير CO₂ السنوي</div>
+                    <div class="metric-value" style="color: var(--success)">${co2Annual}<span class="metric-unit">طن</span></div>
+                </div>
+                <div class="metric-card" style="border-left-color: var(--success)">
+                    <div class="metric-label">توفير CO₂ خلال 25 سنة</div>
+                    <div class="metric-value" style="color: var(--success)">${co2Lifetime}<span class="metric-unit">طن</span></div>
+                </div>
+                <div class="metric-card" style="border-left-color: var(--success)">
+                    <div class="metric-label">يعادل زراعة أشجار</div>
+                    <div class="metric-value" style="color: var(--success)">${treesEquivalent.toLocaleString()}<span class="metric-unit">شجرة</span></div>
+                </div>
+                <div class="metric-card" style="border-left-color: var(--success)">
+                    <div class="metric-label">يعادل إيقاف سيارات</div>
+                    <div class="metric-value" style="color: var(--success)">${carsOff}<span class="metric-unit">سيارة</span></div>
+                </div>
+            </div>
+        `;
+    }
+    function displayDetailed(results) {
+        const lossBreakdown = [
+            { name: 'التربة', value: getNumericInput('soilingLoss') },
+            { name: 'عدم التطابق', value: getNumericInput('mismatchLoss') },
+            { name: 'LID', value: getNumericInput('lidLoss') },
+            { name: 'الأسلاك', value: getNumericInput('wiringLoss') },
+            { name: 'الظلال', value: getNumericInput('shadingLoss') },
+            { name: 'الإنفرتر', value: 100 - getNumericInput('inverterEff') },
+            { name: 'الحرارة', value: Math.abs(getNumericInput('muPmp', true)) * 20 }
+        ];
+        document.getElementById('detailedContent').innerHTML = `
+            <h4 style="margin-bottom:16px"><i class="fas fa-chart-pie"></i> تفصيل الخسائر</h4>
+            <div style="background:var(--bg);padding:16px;border-radius:8px;">
+                ${lossBreakdown.map(l => `
+                    <div style="margin-bottom:12px;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                            <span>${l.name}</span>
+                            <strong>${l.value.toFixed(1)}%</strong>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width:${l.value}%"></div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div style="margin-top:16px;padding:12px;background:var(--bg);border-radius:8px;border-right:4px solid var(--primary);">
+                <strong>ملاحظة:</strong> معامل الأداء (PR) الفعلي: <strong>${(results.performanceRatio * 100).toFixed(1)}%</strong>
+            </div>
+        `;
+    }
+    // ==================== Chart Creation ====================
+    function createChart(canvasId, labels, datasets) {
+        if (state.chart) state.chart.destroy();
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        state.chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: datasets.map(d => ({
+                    label: d.label,
+                    data: d.data,
+                    backgroundColor: d.color + '99',
+                    borderColor: d.color,
+                    borderWidth: 2
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: getComputedStyle(document.body).getPropertyValue('--border')
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    // ==================== UI Helpers ====================
+    function setupResultTabs() {
+        const tabs = [
+            { id: 'summaryTab', icon: 'fa-tachometer-alt', text: 'ملخص' },
+            { id: 'monthlyTab', icon: 'fa-chart-bar', text: 'الإنتاج الشهري' },
+            { id: 'economicsTab', icon: 'fa-coins', text: 'الاقتصاد' },
+            { id: 'environmentTab', icon: 'fa-leaf', text: 'البيئة' },
+            { id: 'detailedTab', icon: 'fa-list', text: 'تفاصيل' },
+            { id: 'recommendationsTab', icon: 'fa-lightbulb', text: state.isEnglish ? 'Recommendations' : 'التوصيات' }
+        ];
+        document.getElementById('resultTabs').innerHTML = tabs.map((t, i) => `
+            <button class="tab ${i === 0 ? 'active' : ''}" data-tab="${t.id}">
+                <i class="fas ${t.icon}"></i> ${t.text}
+            </button>
+        `).join('');
+        document.querySelectorAll('.tab').forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+        switchTab('summaryTab');
+    }
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelector(`[data-tab="${tabId}"]`)?.classList.add('active');
+        document.getElementById(tabId)?.classList.add('active');
+    }
+    function showLoading(show, text = 'جاري المعالجة...') {
+        const overlay = document.getElementById('loadingOverlay');
+        const textEl = document.getElementById('loadingText');
+        overlay.style.display = show ? 'flex' : 'none';
+        if (textEl) textEl.textContent = text;
+    }
+    function showAlert(message, type = 'info') {
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${message}`;
+        document.body.appendChild(alert);
+        setTimeout(() => alert.remove(), 4000);
+    }
+    function getNumericInput(id, allowNegative = false) {
+        const el = document.getElementById(id);
+        if (!el) throw new Error(`حقل غير موجود: ${id}`);
+        const val = parseFloat(el.value);
+        if (isNaN(val) || (!allowNegative && val < 0)) {
+            throw new Error(`قيمة غير صالحة في: ${id}`);
+        }
+        return val;
+    }
+    // ==================== Climate Table ====================
+    function generateClimateTable() {
+        const tbody = document.querySelector('#climateTable tbody');
+        tbody.innerHTML = '';
+        const defaults = {
+            temps: [12.9,16.1,20.7,25.6,30.4,35.6,37.7,36.9,33.4,27.3,19.7,14.4],
+            rads: [3.89,4.94,6.08,6.97,7.37,7.57,7.52,7.09,6.15,4.77,3.98,3.52]
+        };
+        MONTHS_AR.forEach((month, i) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${month}</strong></td>
+                    <td><input type="number" id="temp_${i}" value="${defaults.temps[i]}" step="0.1" /></td>
+                    <td><input type="number" id="rad_${i}" value="${defaults.rads[i]}" step="0.01" /></td>
+                </tr>
+            `;
+        });
+    }
+    function fillClimateTable() {
+        if (!state.pvgisData) return;
+        state.pvgisData.forEach((d, i) => {
+            const tempInput = document.getElementById(`temp_${i}`);
+            const radInput = document.getElementById(`rad_${i}`);
+            if (tempInput) tempInput.value = d.temp;
+            if (radInput) radInput.value = d.rad;
+        });
+    }
+    function getManualClimateData() {
+        const data = [];
+        for (let i = 0; i < 12; i++) {
+            const temp = getNumericInput(`temp_${i}`, true);
+            const rad = getNumericInput(`rad_${i}`);
+            data.push({ temp, rad, wind: 1.5 });
+        }
+        return data;
+    }
+    async function pasteClimateFromClipboard() {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (!text) throw new Error('الحافظة فارغة');
+            const lines = text.split(/\r?\n/).filter(l => l.trim());
+            if (lines.length < 12) throw new Error('البيانات غير كاملة');
+            lines.slice(0, 12).forEach((line, i) => {
+                const parts = line.split(/[,;\t]+/).map(p => p.trim());
+                if (parts.length >= 2) {
+                    const temp = parseFloat(parts[0]);
+                    const rad = parseFloat(parts[1]);
+                    if (!isNaN(temp)) document.getElementById(`temp_${i}`).value = temp;
+                    if (!isNaN(rad)) document.getElementById(`rad_${i}`).value = rad;
+                }
+            });
+            showAlert('تم لصق البيانات بنجاح', 'success');
+        } catch (e) {
+            showAlert('فشل اللصق: ' + e.message, 'error');
+        }
+    }
+    // ==================== Map ====================
+    function initMap() {
+        const lat = 24.7136;
+        const lng = 46.6753;
+        state.map = L.map('map').setView([lat, lng], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(state.map);
+        state.marker = L.marker([lat, lng]).addTo(state.map);
+        state.map.on('click', (e) => {
+            document.getElementById('latitude').value = e.latlng.lat.toFixed(5);
+            document.getElementById('longitude').value = e.latlng.lng.toFixed(5);
+            updateMarker();
+        });
+    }
+    function updateMarker() {
+        try {
+            const lat = parseFloat(document.getElementById('latitude').value);
+            const lng = parseFloat(document.getElementById('longitude').value);
+            if (isNaN(lat) || isNaN(lng)) return;
+            if (state.marker) {
+                state.marker.setLatLng([lat, lng]);
+            } else {
+                state.marker = L.marker([lat, lng]).addTo(state.map);
+            }
+            state.map.setView([lat, lng], Math.max(state.map.getZoom(), 8));
+        } catch (e) {
+            console.error('Marker error:', e);
+        }
+    }
+    // ==================== Theme & Language ====================
+    function toggleDarkMode() {
+        state.isDark = !state.isDark;
+        document.body.classList.toggle('dark-mode');
+        localStorage.setItem('theme', state.isDark ? 'dark' : 'light');
+        const icon = document.querySelector('#darkModeToggle i');
+        icon.className = state.isDark ? 'fas fa-sun' : 'fas fa-moon';
+        if (state.chart) state.chart.update();
+    }
+    function toggleLanguage() {
+        state.isEnglish = !state.isEnglish;
+        showAlert(state.isEnglish ? 'Language switched to English' : 'تم التبديل للعربية', 'info');
+        // إعادة عرض التوصيات باللغة الجديدة
+        if (document.getElementById('results').style.display !== 'none') {
+            // إعادة عرض التوصيات فقط دون إعادة الحساب
+            const inputs = {
+                pvPower: getNumericInput('pvPower'),
+                systemType: document.getElementById('systemType').value,
+                muPmp: getNumericInput('muPmp', true),
+                soilingLoss: getNumericInput('soilingLoss'),
+                shadingLoss: getNumericInput('shadingLoss')
+            };
+            let climateData;
+            if (document.getElementById('climateDataSource').value === 'pvgis') {
+                climateData = state.pvgisData || estimateClimateData(getNumericInput('latitude'));
+            } else {
+                climateData = getManualClimateData();
+            }
+            // إعادة استخدام آخر نتائج محفوظة؟
+            // للتبسيط، نعيد الحساب
+            calculate();
+        }
+    }
+    // ==================== PDF Export ====================
+    async function generatePDF() {
+        showAlert('جاري تجهيز PDF...', 'info');
+        try {
+            const element = document.querySelector('.sidebar-content');
+            const opt = {
+                margin: 0.5,
+                filename: `solar_report_${new Date().toISOString().split('T')[0]}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            await html2pdf().from(element).set(opt).save();
+            showAlert('تم حفظ PDF بنجاح', 'success');
+        } catch (e) {
+            showAlert('فشل إنشاء PDF: ' + e.message, 'error');
+        }
+    }
+    // ==================== Persistence ====================
+    function saveState() {
+        try {
+            const data = {};
+            document.querySelectorAll('input, select').forEach(el => {
+                if (el.id) data[el.id] = el.value;
+            });
+            localStorage.setItem('solar_calc_pro', JSON.stringify(data));
+        } catch (e) {
+            console.warn('Save failed:', e);
+        }
+    }
+    function loadState() {
+        try {
+            const saved = localStorage.getItem('solar_calc_pro');
+            if (!saved) return;
+            const data = JSON.parse(saved);
+            Object.keys(data).forEach(key => {
+                const el = document.getElementById(key);
+                if (el) el.value = data[key];
+            });
+            updateMarker();
+        } catch (e) {
+            console.warn('Load failed:', e);
+        }
+    }
+    function resetForm() {
+        if (!confirm('هل تريد إعادة تعيين جميع الحقول؟')) return;
+        document.querySelectorAll('input, select').forEach(el => {
+            if (el.defaultValue !== undefined) {
+                el.value = el.defaultValue;
+            }
+        });
+        generateClimateTable();
+        document.getElementById('results').style.display = 'none';
+        localStorage.removeItem('solar_calc_pro');
+        state.pvgisData = null;
+        showAlert('تمت إعادة التعيين', 'success');
+    }
+    // ==================== Event Listeners ====================
+    function setupEventListeners() {
+        // Calculation
+        document.getElementById('calculateBtn').addEventListener('click', calculate);
+        document.getElementById('resetBtn').addEventListener('click', resetForm);
+        // Location
+        document.getElementById('latitude').addEventListener('change', () => {
+            updateMarker();
+            saveState();
+        });
+        document.getElementById('longitude').addEventListener('change', () => {
+            updateMarker();
+            saveState();
+        });
+        // PVGIS
+        document.getElementById('fetchPVGISBtn').addEventListener('click', () => {
+            const lat = document.getElementById('latitude').value;
+            const lng = document.getElementById('longitude').value;
+            fetchPVGISData(lat, lng);
+        });
+        // Climate data source
+        document.getElementById('climateDataSource').addEventListener('change', (e) => {
+            const manual = document.getElementById('manualClimateInputs');
+            manual.style.display = e.target.value === 'manual' ? 'block' : 'none';
+        });
+        // Paste climate
+        document.getElementById('pasteClimateBtn').addEventListener('click', pasteClimateFromClipboard);
+        // Tools
+        document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
+        document.getElementById('langToggle').addEventListener('click', toggleLanguage);
+        document.getElementById('downloadPdfBtn').addEventListener('click', generatePDF);
+        document.getElementById('printBtn').addEventListener('click', () => window.print());
+        // Map controls
+        document.getElementById('zoomInBtn').addEventListener('click', () => state.map.zoomIn());
+        document.getElementById('zoomOutBtn').addEventListener('click', () => state.map.zoomOut());
+        document.getElementById('centerMapBtn').addEventListener('click', () => {
+            if (state.marker) {
+                state.map.setView(state.marker.getLatLng(), Math.max(state.map.getZoom(), 8));
+            }
+        });
+        // Auto-save on input
+        document.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('change', saveState);
+        });
+    }
+    // ==================== Advanced Analytics ====================
+    // حساب P50/P90 للمشاريع الاستثمارية
+    function calculateP50P90(annualEnergy) {
+        // P50 = median expected energy (50% probability)
+        const p50 = annualEnergy;
+        // P90 = conservative estimate (90% probability)
+        // Typically 10-15% lower due to uncertainties
+        const uncertainties = {
+            irradiance: 0.05,      // 5% irradiance uncertainty
+            performance: 0.03,     // 3% performance uncertainty
+            availability: 0.02,    // 2% availability uncertainty
+            degradation: 0.02      // 2% degradation uncertainty
+        };
+        const totalUncertainty = Math.sqrt(
+            Math.pow(uncertainties.irradiance, 2) +
+            Math.pow(uncertainties.performance, 2) +
+            Math.pow(uncertainties.availability, 2) +
+            Math.pow(uncertainties.degradation, 2)
+        );
+        const p90 = p50 * (1 - 1.28 * totalUncertainty); // 1.28 = z-score for 90%
+        return { p50, p90, uncertainty: totalUncertainty * 100 };
+    }
+    // حساب Performance Ratio تفصيلي
+    function calculateDetailedPR(results, pvPower) {
+        const referenceYield = results.annualDC / pvPower;
+        const finalYield = results.annual / pvPower;
+        const pr = finalYield / referenceYield;
+        return {
+            pr: pr * 100,
+            referenceYield: referenceYield,
+            finalYield: finalYield,
+            systemLosses: (1 - pr) * 100
+        };
+    }
+    // حساب Specific Production
+    function calculateSpecificProduction(annualEnergy, pvPower) {
+        return annualEnergy / pvPower; // kWh/kWp/year
+    }
+    // حساب Capacity Factor
+    function calculateCapacityFactor(annualEnergy, pvPower) {
+        const maxPossibleEnergy = pvPower * 8760; // kWh
+        return (annualEnergy / maxPossibleEnergy) * 100; // %
+    }
+    // تحليل الحساسية للمتغيرات
+    function sensitivityAnalysis(baseResults) {
+        const variables = [
+            { name: 'الإشعاع', variation: [-10, -5, 0, 5, 10] },
+            { name: 'درجة الحرارة', variation: [-5, -2, 0, 2, 5] },
+            { name: 'خسائر النظام', variation: [-2, -1, 0, 1, 2] }
+        ];
+        return variables.map(v => ({
+            name: v.name,
+            impact: v.variation.map(pct => ({
+                change: pct,
+                energy: baseResults.annual * (1 + pct / 100)
+            }))
+        }));
+    }
+    // ==================== Export Functions ====================
+    // تصدير البيانات إلى CSV
+    function exportToCSV(results) {
+        const rows = [
+            ['الشهر', 'الإنتاج AC (kWh)', 'الإنتاج DC (kWh)', 'الخسائر (kWh)'],
+            ...results.monthly.map((m, i) => [
+                MONTHS_AR[i],
+                Math.round(m.ac),
+                Math.round(m.dc),
+                Math.round(m.losses)
+            ]),
+            ['الإجمالي', Math.round(results.annual), Math.round(results.annualDC), Math.round(results.losses)]
+        ];
+        const csv = rows.map(row => row.join(',')).join('\n');
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `solar_analysis_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+    }
+    // تصدير التقرير الكامل
+    function exportFullReport(results) {
+        const pvPower = getNumericInput('pvPower');
+        const lat = getNumericInput('latitude');
+        const lng = getNumericInput('longitude');
+        const report = {
+            project: {
+                location: { latitude: lat, longitude: lng },
+                systemSize: pvPower,
+                date: new Date().toISOString()
+            },
+            results: {
+                annual: results.annual,
+                monthly: results.monthly,
+                pr: results.performanceRatio
+            },
+            economics: {
+                cost: pvPower * getNumericInput('installationCost'),
+                savings: results.annual * getNumericInput('electricityPrice')
+            }
+        };
+        const json = JSON.stringify(report, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `solar_report_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+    }
+    // ==================== Validation Functions ====================
+    function validateInputs() {
+        const validations = [
+            { id: 'latitude', min: -90, max: 90, name: 'خط العرض' },
+            { id: 'longitude', min: -180, max: 180, name: 'خط الطول' },
+            { id: 'pvPower', min: 0.1, max: 10000, name: 'القدرة' },
+            { id: 'inverterEff', min: 80, max: 99.5, name: 'كفاءة الإنفرتر' },
+            { id: 'dcAcRatio', min: 1, max: 2, name: 'DC/AC' }
+        ];
+        for (const v of validations) {
+            const val = getNumericInput(v.id);
+            if (val < v.min || val > v.max) {
+                throw new Error(`${v.name} يجب أن يكون بين ${v.min} و ${v.max}`);
+            }
+        }
+        return true;
+    }
+    // ==================== Additional UI Enhancements ====================
+    // إضافة أزرار التصدير إلى النتائج
+    function addExportButtons(results) {
+        const exportSection = document.createElement('div');
+        exportSection.className = 'btn-group';
+        exportSection.style.marginTop = '16px';
+        exportSection.innerHTML = `
+            <button class="btn btn-secondary" id="exportCsvBtn">
+                <i class="fas fa-file-csv"></i> تصدير CSV
+            </button>
+            <button class="btn btn-secondary" id="exportJsonBtn">
+                <i class="fas fa-file-code"></i> تصدير JSON
+            </button>
+        `;
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.appendChild(exportSection);
+        document.getElementById('exportCsvBtn').addEventListener('click', () => exportToCSV(results));
+        document.getElementById('exportJsonBtn').addEventListener('click', () => exportFullReport(results));
+    }
+    // إضافة مؤشر تقدم الحساب
+    function showProgress(percent) {
+        const progressBar = document.querySelector('.progress-fill');
+        if (progressBar) {
+            progressBar.style.width = percent + '%';
+        }
+    }
+    // ==================== Error Handling ====================
+    window.addEventListener('error', (e) => {
+        console.error('Error:', e.error);
+        showAlert('حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.', 'error');
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+        console.error('Unhandled promise rejection:', e.reason);
+        showAlert('فشلت العملية. يرجى التحقق من البيانات المدخلة.', 'error');
+    });
+    // ==================== Performance Optimization ====================
+    // Debounce function لتحسين الأداء
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    // تطبيق debounce على حفظ الحالة
+    const debouncedSave = debounce(saveState, 500);
+    // ==================== Initialization ====================
+    document.addEventListener('DOMContentLoaded', () => {
+        try {
+            // Initialize map
+            initMap();
+            // Generate climate table
+            generateClimateTable();
+            // Setup event listeners
+            setupEventListeners();
+            // Load saved state
+            loadState();
+            // Apply saved theme
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                state.isDark = true;
+                const icon = document.querySelector('#darkModeToggle i');
+                if (icon) icon.className = 'fas fa-sun';
+            }
+            // Replace auto-save with debounced version
+            document.querySelectorAll('input, select').forEach(el => {
+                el.removeEventListener('change', saveState);
+                el.addEventListener('change', debouncedSave);
+                el.addEventListener('input', debouncedSave);
+            });
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Ctrl/Cmd + Enter to calculate
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    calculate();
+                }
+                // Ctrl/Cmd + R to reset
+                if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                    e.preventDefault();
+                    resetForm();
+                }
+            });
+            console.log('%c✓ الحاسبة الشمسية الاحترافية جاهزة', 'color: #28a745; font-weight: bold; font-size: 14px;');
+            console.log('%cاختصارات لوحة المفاتيح:', 'color: #0066cc; font-weight: bold;');
+            console.log('Ctrl/Cmd + Enter: حساب');
+            console.log('Ctrl/Cmd + R: إعادة تعيين');
+        } catch (e) {
+            console.error('Initialization error:', e);
+            showAlert('فشل في تحميل التطبيق. يرجى تحديث الصفحة.', 'error');
+        }
+    });
+    // ==================== Service Worker Registration (Optional) ====================
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            // يمكن إضافة Service Worker للعمل دون اتصال
+            console.log('Service Worker support detected');
+        });
+    }
+    // ==================== Analytics (Optional) ====================
+    // يمكن إضافة تتبع الاستخدام إذا لزم الأمر
+    function trackUsage(action, data) {
+        console.log('Usage:', action, data);
+        // يمكن إرسال البيانات إلى خدمة تحليلات هنا
+    }
+    // ==================== Public API ====================
+    // تصدير واجهة برمجية للاستخدام الخارجي
+    window.SolarCalculator = {
+        calculate: calculate,
+        fetchPVGIS: fetchPVGISData,
+        exportCSV: exportToCSV,
+        exportJSON: exportFullReport,
+        reset: resetForm,
+        version: '2.0.0'
+    };
+    console.log('%cAPI متاح عبر: window.SolarCalculator', 'color: #6c757d; font-style: italic;');
+    </script>
+</body>
+</html>
